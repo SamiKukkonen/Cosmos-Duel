@@ -5,3 +5,4 @@ Dopwnload the data folder and all assests. Also download the pyhton code file. P
 Controls:
 Green: W, A, S, D, Left CTRL.
 Orange: Arrow keys and Right CTRL.
+![](data/screenshot1.png)
