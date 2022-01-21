@@ -6,5 +6,5 @@ Controls:
 Green: W, A, S, D, Left CTRL.
 Orange: Arrow keys and Right CTRL.
 ![](data/screenshot1.png)
-![](data/screenshot2.pmg)
+![](data/screenshot2.png)
 ![](data/screenshot3.png)
