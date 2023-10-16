@@ -4,7 +4,7 @@ from pygame import event
 from pygame.constants import K_DOWN, K_ESCAPE, K_LCTRL, K_LEFT, K_RCTRL, K_RIGHT, K_UP, MOUSEBUTTONDOWN, K_a, K_d, K_s, K_w
 from pygame.font import Font
 from sys import exit
-
+import random
 from pygame.time import Clock
 pygame.font.init()
 from pygame import mixer
@@ -59,6 +59,7 @@ VALIKKO = pygame.image.load("data/valikko.png")
 VALIKKO_TAUSTA = pygame.image.load("data/tausta_tumma.png")
 MUTE = pygame.image.load("data/mute.png")
 UNMUTE = pygame.image.load("data/unmute.png")
+ASTEROID_IMAGE = pygame.image.load("data/Asteroid2.png")
 VIHREA_ALUS_LEVEYS, VIHREA_ALUS_KORKEUS = LEVEYS//12, KORKEUS//8
 ORANSSI_ALUS_LEVEYS, ORANSSI_ALUS_KORKEUS = LEVEYS//12, KORKEUS//8
 
@@ -70,6 +71,72 @@ ORANSSI_OSUMA = pygame.USEREVENT + 2
 
 FONTTI = pygame.font.SysFont("comicsans", 30)
 VOITTO_FONTTI = pygame.font.SysFont("Helvetica", 80)
+
+class Meteor:
+    def __init__(self, x, y, size, velocity_x, velocity_y, image):
+        self.x = x
+        self.y = y
+        self.size = size
+        self.velocity_x = velocity_x
+        self.velocity_y = velocity_y
+        self.image = image
+        # Collision box
+        self.collision_box = pygame.Rect(x, y, size, size)
+
+# Initialize list to store meteors
+meteors = []
+
+SPAWN_DELAY = 2000  # Adjust this value to control the spawn frequency (in milliseconds)
+last_spawn_time = pygame.time.get_ticks()
+
+# Function to generate random meteors
+
+def generate_meteor():
+    global last_spawn_time
+    current_time = pygame.time.get_ticks()
+
+    # Check if enough time has passed since the last spawn
+    if current_time - last_spawn_time >= SPAWN_DELAY:
+        size = random.randint(10, 40)  # Random size for the meteor
+
+        # Randomly choose an edge to spawn the meteor
+        edge = random.choice(['top', 'bottom', 'left', 'right'])
+
+        if edge == 'top':
+            x = random.randint(0, LEVEYS - size)
+            y = 0
+            velocity_x = random.uniform(-2, 2)
+            velocity_y = random.uniform(1, 5)
+        elif edge == 'bottom':
+            x = random.randint(0, LEVEYS - size)
+            y = KORKEUS - size
+            velocity_x = random.uniform(-2, 2)
+            velocity_y = random.uniform(-5, -1)
+        elif edge == 'left':
+            x = 0
+            y = random.randint(0, KORKEUS - size)
+            velocity_x = random.uniform(1, 5)
+            velocity_y = random.uniform(-2, 2)
+        elif edge == 'right':
+            x = LEVEYS - size
+            y = random.randint(0, KORKEUS - size)
+            velocity_x = random.uniform(-5, -1)
+            velocity_y = random.uniform(-2, 2)
+
+        meteor = Meteor(x, y, size, velocity_x, velocity_y, ASTEROID_IMAGE)
+        meteors.append(meteor)
+
+        # Update the last spawn time
+        last_spawn_time = current_time
+
+def update_meteors():
+    for meteor in meteors:
+        meteor.x += meteor.velocity_x
+        meteor.y += meteor.velocity_y
+
+        # Remove meteors that go out of the screen
+        if meteor.x < 0 or meteor.x > LEVEYS or meteor.y < 0 or meteor.y > KORKEUS:
+            meteors.remove(meteor)
 
 class Nappi():
 	def __init__(self, x, y, image, scale):
@@ -136,10 +203,17 @@ def piirto(vihrea, oranssi, VIHREA_LASERIT, ORANSSI_LASERIT, VIHREA_HP, ORANSSI_
     RUUTU.blit(oranssi_hp_teksti,(10,10))
     RUUTU.blit(ORANSSI_ALUS, (oranssi.x, oranssi.y))
     RUUTU.blit(VIHREA_ALUS,(vihrea.x, vihrea.y))
+
     for laseri in VIHREA_LASERIT:
         pygame.draw.rect(RUUTU, vihrea_vari, laseri)
+
     for laseri in ORANSSI_LASERIT:
         pygame.draw.rect(RUUTU, oranssi_vari, laseri)
+
+    for meteor in meteors:
+        meteor_image = pygame.transform.scale(meteor.image, (meteor.size, meteor.size))
+        RUUTU.blit(meteor_image, (int(meteor.x), int(meteor.y)))
+
     pygame.display.update()
 
 def vihrea_liike(painetut_napit, vihrea):
@@ -160,6 +234,13 @@ def oranssi_liike(painetut_napit, oranssi):
             oranssi.y -= NOPEUS
         if painetut_napit[K_DOWN] and oranssi.y + NOPEUS + ORANSSI_ALUS_KORKEUS < KORKEUS - KORKEUS//70: # Oranssi liike alas  
             oranssi.y += NOPEUS
+
+def check_collisions(vihrea, oranssi):
+    for meteor in meteors:
+        if vihrea.colliderect(meteor.collision_box):
+            print("Green spaceship collided with a meteor!")
+        if oranssi.colliderect(meteor.collision_box):
+            print("Orange spaceship collided with a meteor!")
 
 def laserit_liike(VIHREA_LASERIT, ORANSSI_LASERIT, vihrea, oranssi):
     for laseri in VIHREA_LASERIT:
@@ -237,6 +318,9 @@ def main():
         painetut_napit = pygame.key.get_pressed()
         vihrea_liike(painetut_napit, vihrea)
         oranssi_liike(painetut_napit, oranssi)
+        update_meteors()  # Update meteor positions
+        generate_meteor() # Generates the meteors
+        check_collisions(vihrea, oranssi)  # Check for collisions with spaceships
         piirto(vihrea, oranssi, VIHREA_LASERIT, ORANSSI_LASERIT, VIHREA_HP, ORANSSI_HP)
         laserit_liike(VIHREA_LASERIT, ORANSSI_LASERIT, vihrea, oranssi)
 
